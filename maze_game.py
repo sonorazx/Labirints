@@ -46,3 +46,36 @@ def keyUp(key):
 	if key in keys:
 		keys[key] = False
 viz.callback(viz.KEYUP_EVENT,keyUp)
+
+def updateMovement():
+	move = viz.Vector(0,0,0)
+	
+	if keys["w"]:
+		move += player.getForward()
+	if keys["s"]:
+		move -= player.getForward()
+	if keys["a"]:
+		move -= player.getRight()
+	if keys["d"]:
+		move += player.getRight()
+		
+	if move.lenght() > 0.001:
+		move.normalize()
+		move += MOVE_SPEED * viz.getFrameElapsed()
+		
+		player.setPosition(player.getPosition() + move)
+		
+		if player.collide(mazeModel1):
+			player.setPosition(player.getPosition() - move)
+			
+			move_x = viz.Vector(move[0],0,0)
+			player.setPosition(player.getPosition() + move_x)
+			if player.collide(mazeModel1):
+				player.setPosition(player.getPosition() - move_x)
+				
+				move_z = viz.Vector(0,0,move[2])
+				player.setPosition(player.getPosition() + move_z)
+				if player.collide(mazeModel1):
+					player.setPosition(player.getPosition() - move_z)
+					
+vizact.ontimer(0, updateMovement)
