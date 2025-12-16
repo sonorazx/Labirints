@@ -1,81 +1,108 @@
 ﻿import viz
-import vizfx
 import vizcam
 import vizact
-import vizmat
 
-viz.go
+viz.go()
 
 viz.clearcolor(viz.SKYBLUE)
+viz.addDirectionalLight().setEuler(45,-30,0)
 
-ground = viz.addChild('ground.osgb')
+ground = viz.add('ground.osgb')
 ground.setScale([50,1,50])
-ground.setPosition([0,0,0])
 ground.color(viz.GREEN)
 
-EXIT_MODEL_FILE = "cat.fbx"
 
-LEVEL = {
-    "maze": "labirint1.fbx",
-    "start": [0,1.8,0],
-    "exitPos": [10,0,10]
-}
+maze = viz.add('labirint1.obj')
+maze.setPosition([0,0,0])
+maze.setScale([1,1,1])
+maze.collideMesh()
+maze.disable(viz.CULL_FACE)
 
-mazeModel = None
-exitModel = None
+exitObj = viz.add('cat.obj')
+exitObj.setPosition([10,0,10])
+exitObj.setScale([5,5,5])
+exitObj.collideMesh()
 
-player = viz.MainView
-vizcam.MouseLook()
-viz.mouse.setVisible(False)
+camera = vizcam.KeyboardCamera()
+viz.MainView.setParent(camera)
+viz.MainView.setPosition([0,1.8,-5])
 
-MOVE_SPEED = 3.0
-keys = {"w":False, "s":False, "a":False, "d":False}
-
-playerCollider = viz.addChild(viz.COLLISION_CAPSULE, scale=[0.3,1.8,0.3]
+playerCollider = viz.addChild(viz.COLLISION_CAPSULE, scale=[0.3,1.8,0.3])
 playerCollider.visible(viz.OFF)
 playerCollider.collideMesh()
-playerCollider.enable(viz.COLLIDE_NOTIFY)
-playerCollider.setParent(player)
+playerCollider.setParent(camera)
+playerCollider.setPosition([0,0,0])
+
+def zoomCamera(e):
+    zoomSpeed = 0.5
+    x,y,z = camera.getPosition()
+    if e.button == viz.MOUSE_WHEEL_UP:
+        camera.setPosition([x,y,z-zoomSpeed])
+    elif e.button == viz.MOUSE_WHEEL_DOWN:
+        camera.setPosition([x,y,z+zoomSpeed])
+
+viz.callback(viz.MOUSEDOWN_EVENT, zoomCamera)
+
+MOVE_SPEED = 5.0
+ACCELERATION = 15.0
+velocity = viz.Vector(0,0,0)
+keys = {"w":False,"a":False,"s":False,"d":False}
 
 def keyDown(key):
-	if key in keys:
-		keys[key] = True
-viz.callback(viz.KEYDOWN_EVENT,keyDown)
+    key = key.lower()
+    if key in keys: keys[key] = True
 
 def keyUp(key):
-	if key in keys:
-		keys[key] = False
-viz.callback(viz.KEYUP_EVENT,keyUp)
+    key = key.lower()
+    if key in keys: keys[key] = False
+
+viz.callback(viz.KEYDOWN_EVENT, keyDown)
+viz.callback(viz.KEYUP_EVENT, keyUp)
 
 def updateMovement():
-	move = viz.Vector(0,0,0)
-	
-	if keys["w"]:
-		move += player.getForward()
-	if keys["s"]:
-		move -= player.getForward()
-	if keys["a"]:
-		move -= player.getRight()
-	if keys["d"]:
-		move += player.getRight()
-		
-	if move.lenght() > 0.001:
-		move.normalize()
-		move += MOVE_SPEED * viz.getFrameElapsed()
-		
-		player.setPosition(player.getPosition() + move)
-		
-		if player.collide(mazeModel1):
-			player.setPosition(player.getPosition() - move)
-			
-			move_x = viz.Vector(move[0],0,0)
-			player.setPosition(player.getPosition() + move_x)
-			if player.collide(mazeModel1):
-				player.setPosition(player.getPosition() - move_x)
-				
-				move_z = viz.Vector(0,0,move[2])
-				player.setPosition(player.getPosition() + move_z)
-				if player.collide(mazeModel1):
-					player.setPosition(player.getPosition() - move_z)
-					
+    global velocity
+    desired = viz.Vector(0,0,0)
+    if keys["w"]: desired += camera.getForward()
+    if keys["s"]: desired -= camera.getForward()
+    if keys["a"]: desired -= camera.getRight()
+    if keys["d"]: desired += camera.getRight()
+
+    if desired.length() > 0.001:
+        desired.normalize()
+        desired *= MOVE_SPEED
+    else:
+        desired = viz.Vector(0,0,0)
+
+    frame_time = viz.getFrameElapsed()
+    velocity += (desired - velocity) * min(ACCELERATION*frame_time,1)
+
+    oldPos = camera.getPosition()
+    camera.setPosition(oldPos + velocity * frame_time)
+    playerCollider.setPosition(camera.getPosition())
+
+    if playerCollider.collide(maze):
+
+        camera.setPosition(oldPos)
+        playerCollider.setPosition(oldPos)
+
+        move_x = viz.Vector(velocity[0]*frame_time,0,0)
+        camera.setPosition(oldPos + move_x)
+        playerCollider.setPosition(camera.getPosition())
+        if playerCollider.collide(maze):
+            camera.setPosition(oldPos)
+            playerCollider.setPosition(oldPos)
+
+            move_z = viz.Vector(0,0,velocity[2]*frame_time)
+            camera.setPosition(oldPos + move_z)
+            playerCollider.setPosition(camera.getPosition())
+            if playerCollider.collide(maze):
+                camera.setPosition(oldPos)
+                playerCollider.setPosition(oldPos)
+
 vizact.ontimer(0, updateMovement)
+
+def checkExit():
+    if playerCollider.collide(exitObj):
+        viz.message("Level Complete!")
+
+vizact.ontimer(0.05, checkExit)
