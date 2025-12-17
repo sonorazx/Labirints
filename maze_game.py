@@ -1,5 +1,4 @@
 ﻿import viz
-<<<<<<< HEAD
 import vizact
 import vizmat
 import math
@@ -8,17 +7,10 @@ import time
 import vizcam
 
 viz.go()
-=======
-import vizcam
-import vizact
 
-viz.go()
-
->>>>>>> 8198995874ae8af0c7012ea501ad4dcdd9e2671b
 viz.clearcolor(viz.SKYBLUE)
 viz.addDirectionalLight().setEuler(45,-30,0)
 
-<<<<<<< HEAD
 PLAYER_HEIGHT = 5 
 MOVE_SPEED = 0.1
 CAM_DISTANCE = 15
@@ -170,7 +162,6 @@ def update():
 
 vizact.ontimer(0, update)
 load_level(current_level)
-=======
 ground = viz.add('ground.osgb')
 ground.setScale([50,1,50])
 ground.color(viz.GREEN)
@@ -270,4 +261,3 @@ def checkExit():
         viz.message("Level Complete!")
 
 vizact.ontimer(0.05, checkExit)
->>>>>>> 8198995874ae8af0c7012ea501ad4dcdd9e2671b
